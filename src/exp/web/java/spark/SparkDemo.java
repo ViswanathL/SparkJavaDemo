@@ -1,18 +1,26 @@
 package exp.web.java.spark;
 
+import static spark.Spark.before;
 import static spark.Spark.exception;
 import static spark.Spark.get;
 import static spark.Spark.post;
 
+import java.io.IOException;
 import java.util.UUID;
+
+import javax.servlet.http.HttpServletResponse;
 
 import net.spy.memcached.MemcachedClient;
 import spark.Request;
 import spark.Response;
 import spark.servlet.SparkApplication;
+
+import com.google.gson.GsonBuilder;
+
 import exp.web.java.spark.auth.clients.MemCache;
 import exp.web.java.spark.dto.SimpleDto;
 import exp.web.java.spark.entity.User;
+import exp.web.java.spark.exception.UnauthorizedAccessException;
 import exp.web.java.spark.util.JsonTransformer;
 
 /**
@@ -35,6 +43,27 @@ public class SparkDemo implements SparkApplication {
 	}
 
 	public void initialize() {
+		
+		before("/secure/*", (request, response) -> {
+			try {
+				String authToken = request.headers(AUTH_TOKEN);
+				// Check if there is a token
+				if(authToken == null || authToken.isEmpty()) {
+					sendUnauthorizedResponse(response);
+					return;
+				}
+				// Validate the auth_token
+				MemcachedClient memcachedClient = MemCache.getMemcache();
+				User user = (User)memcachedClient.get(authToken);
+				if(user == null) {
+					sendUnauthorizedResponse(response);
+					return;
+				}
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
+		});
+		
 		post("/login",
 				"application/json",
 				(Request request, Response response) -> {
@@ -81,6 +110,18 @@ public class SparkDemo implements SparkApplication {
 			response.body("404");
 		});
 	}
+	
+	/**
+	 * Used to send unauthorized response
+	 * @param res
+	 * @throws IOException
+	 */
+	private void sendUnauthorizedResponse(Response res)
+			throws IOException {
+		HttpServletResponse response = (HttpServletResponse)res;
+		response.getWriter().write(new GsonBuilder().create().toJson(new UnauthorizedAccessException().getResponse()));
+	}
+
 
 	@Override
 	public void init() {

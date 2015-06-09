@@ -10,17 +10,6 @@
 		<welcome-file>index.html</welcome-file>
 	</welcome-file-list>
 	
-	<!-- Configure memcache filter -->
-	<filter>
-		<filter-name>MemcacheFilter</filter-name>
-		<filter-class>exp.web.java.spark.auth.MemcacheFilter</filter-class>
-	</filter>
-
-	<filter-mapping>
-		<filter-name>MemcacheFilter</filter-name>
-		<url-pattern>/secure/*</url-pattern>
-	</filter-mapping>
-	
 	<!-- Configure spark application class -->
 	<filter>
 		<filter-name>SparkFilter</filter-name>
